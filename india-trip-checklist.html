@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>インド出張11日 チェックリスト</title>
+<style>
+:root{--bg:#f2f5f7;--card:#fff;--ink:#16233b;--muted:#66748b;--line:#dbe2ea;--accent:#e39a0b;--done:#0f766e;--danger:#c2410c}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1726;--card:#182238;--ink:#e8edf5;--muted:#93a1b8;--line:#2a3752;--accent:#f2b23a;--done:#3cc4b6;--danger:#f28a5a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;font-size:16px;line-height:1.5;
+ padding:env(safe-area-inset-top,0) 0 calc(170px + env(safe-area-inset-bottom,0))}
+.wrap{max-width:640px;margin:0 auto;padding:20px 14px 0}
+h1{font-size:19px;margin:0 0 10px}
+.count{display:flex;align-items:baseline;gap:8px}
+.num{font-size:64px;font-weight:800;line-height:1}
+.lbl{color:var(--muted)}
+.bar{height:8px;border-radius:4px;background:var(--line);margin:12px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.bar.full i{background:var(--done)}
+.sub{font-size:13px;color:var(--muted)}
+.cat{margin-top:22px}
+.cat-h{display:flex;justify-content:space-between;padding:0 2px 6px;font-size:15px;font-weight:700}
+.cat-h span{font-weight:400;font-size:13px;color:var(--muted)}
+ul{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);border-radius:10px}
+li{display:flex;align-items:center;min-height:52px;border-bottom:1px solid var(--line);padding-right:4px}
+li:last-child{border-bottom:0}
+.chk{flex:0 0 48px;height:52px;display:flex;align-items:center;justify-content:center;background:none;border:0;padding:0;cursor:pointer}
+.box{width:24px;height:24px;border:2px solid var(--muted);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700}
+li.done .box{background:var(--done);border-color:var(--done)}
+.txt{flex:1;min-width:0;padding:10px 0;word-break:break-all;cursor:pointer}
+li.done .txt{color:var(--muted);text-decoration:line-through}
+.ib{flex:0 0 42px;height:42px;border:0;background:none;color:var(--muted);font-size:13px;border-radius:8px;cursor:pointer}
+.ib.del:active,.ib.del:hover{color:var(--danger)}
+.edit{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:2px solid var(--accent);border-radius:8px;padding:8px 10px;margin:6px 0}
+.empty{padding:14px;color:var(--muted);font-size:14px}
+.tools{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap}
+.tools button{font:inherit;font-size:14px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:8px;padding:10px 14px;cursor:pointer}
+.add{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0))}
+.add form{max-width:640px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:8px}
+.add input,.add select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0;width:100%}
+.add input{grid-column:1/-1}
+.add button{font:inherit;font-weight:700;color:#16233b;background:var(--accent);border:0;border-radius:8px;padding:10px 20px;cursor:pointer}
+.warn{display:none;margin-top:8px;font-size:13px;color:var(--danger)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>インド出張11日｜出発直前チェック</h1>
+  <div class="count"><span class="num" id="left">0</span><span class="lbl">個 残り</span></div>
+  <div class="bar" id="bar"><i id="fill"></i></div>
+  <div class="sub" id="sub"></div>
+  <div class="warn" id="warn">このブラウザでは保存できない状態。閉じると内容が消える</div>
+  <main id="cats"></main>
+  <div class="tools">
+    <button type="button" id="uncheck">チェックを全部外す</button>
+    <button type="button" id="reset">初期リストに戻す</button>
+  </div>
+</div>
+
+<div class="add">
+  <form id="addForm" autocomplete="off">
+    <input type="text" id="newText" placeholder="追加する項目" maxlength="80">
+    <select id="newCat" aria-label="カテゴリ"></select>
+    <button type="submit">追加</button>
+  </form>
+</div>
+
+<script>
+(function () {
+  var KEY = "india-trip-checklist";
+  var DEFAULTS = [
+    ["書類・お金", ["パスポート（残存期間・空きページ）","eビザ承認書（印刷＋スマホ保存）","航空券・eチケット","ホテル予約確認書","海外旅行保険の証書","パスポートのコピー・顔写真","現金（円・米ドル）","クレジットカード2枚以上","名刺（多め）","訪問先の住所・担当者連絡先"]],
+    ["通信・電子機器", ["スマホ","eSIM／海外Wi-Fiの設定","充電器・ケーブル","変換プラグ（C・Dタイプ）","モバイルバッテリー（機内持込）","PC・ACアダプタ","延長タップ","イヤホン"]],
+    ["健康・衛生", ["常備薬","整腸薬・下痢止め","経口補水塩","虫除け","除菌ジェル・ウェットティッシュ","日焼け止め","マスク"]],
+    ["服装・持ち物", ["スーツ・シャツ（薄手）","羽織り（冷房対策）","歩きやすい靴","下着・靴下","折りたたみ傘","サングラス","ジップ袋・エコバッグ","洗濯用洗剤"]],
+    ["出発直前の作業", ["Webチェックイン","Uber・Googleマップを入れる","戸締り・ガス・電気","冷蔵庫の生もの処理・ゴミ出し","郵便・宅配の対応","家族・会社に旅程を共有","空港までの交通手段を確認","荷物の重量チェック"]]
+  ];
+
+  var seq = 0;
+  function newId() { seq++; return "i" + Date.now().toString(36) + seq; }
+  function fresh() {
+    return DEFAULTS.map(function (c, n) {
+      return { id: "c" + n, name: c[0], items: c[1].map(function (t) { return { id: newId(), t: t, done: false }; }) };
+    });
+  }
+
+  // 保存（localStorage）
+  var canSave = true;
+  try { localStorage.setItem(KEY + "-test", "1"); localStorage.removeItem(KEY + "-test"); }
+  catch (e) { canSave = false; }
+
+  function load() {
+    if (!canSave) return fresh();
+    try {
+      var s = JSON.parse(localStorage.getItem(KEY));
+      if (Array.isArray(s) && s.length) return s;
+    } catch (e) {}
+    return fresh();
+  }
+  function save() {
+    if (!canSave) return;
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  var state = load();
+  var editingId = null;
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function find(id) {
+    for (var a = 0; a < state.length; a++) {
+      for (var b = 0; b < state[a].items.length; b++) {
+        if (state[a].items[b].id === id) return { cat: state[a], idx: b, item: state[a].items[b] };
+      }
+    }
+    return null;
+  }
+
+  function render() {
+    var root = $("cats");
+    root.innerHTML = "";
+    var total = 0, done = 0;
+
+    state.forEach(function (cat) {
+      var d = cat.items.filter(function (i) { return i.done; }).length;
+      total += cat.items.length; done += d;
+
+      var sec = el("section", "cat");
+      var h = el("div", "cat-h", cat.name);
+      h.appendChild(el("span", null, d + " / " + cat.items.length));
+      sec.appendChild(h);
+
+      var ul = el("ul");
+      if (!cat.items.length) ul.appendChild(el("li", "empty", "項目なし"));
+      cat.items.forEach(function (it) { ul.appendChild(row(it)); });
+      sec.appendChild(ul);
+      root.appendChild(sec);
+    });
+
+    var left = total - done;
+    var pct = total ? Math.round(done / total * 100) : 0;
+    $("left").textContent = left;
+    $("fill").style.width = pct + "%";
+    $("bar").className = "bar" + (total && !left ? " full" : "");
+    $("sub").textContent = !total ? "項目なし" : (!left ? "全部そろった。いってらっしゃい" : done + " / " + total + " 完了（" + pct + "%）");
+
+    var sel = $("newCat"), cur = sel.value;
+    sel.innerHTML = "";
+    state.forEach(function (c) { var o = el("option", null, c.name); o.value = c.id; sel.appendChild(o); });
+    if (cur) sel.value = cur;
+    if (!sel.value && state[0]) sel.value = state[0].id;
+  }
+
+  function row(it) {
+    var li = el("li", it.done ? "done" : "");
+
+    var chk = el("button", "chk");
+    chk.type = "button";
+    chk.setAttribute("aria-label", it.t);
+    chk.appendChild(el("span", "box", it.done ? "✓" : ""));
+    chk.addEventListener("click", function () { toggle(it.id); });
+    li.appendChild(chk);
+
+    if (editingId === it.id) {
+      var inp = el("input", "edit");
+      inp.type = "text"; inp.value = it.t; inp.maxLength = 80;
+      var finished = false;
+      function finish(ok) {
+        if (finished) return;
+        finished = true;
+        var v = inp.value.trim();
+        if (ok && v) it.t = v;
+        editingId = null;
+        save(); render();
+      }
+      inp.addEventListener("keydown", function (e) {
+        if (e.isComposing || e.keyCode === 229) return; // 日本語変換中は無視
+        if (e.key === "Enter") { e.preventDefault(); finish(true); }
+        if (e.key === "Escape") finish(false);
+      });
+      inp.addEventListener("blur", function () { finish(true); });
+      li.appendChild(inp);
+      setTimeout(function () { inp.focus(); }, 0);
+    } else {
+      var t = el("span", "txt", it.t);
+      t.addEventListener("click", function () { toggle(it.id); });
+      li.appendChild(t);
+
+      var eb = el("button", "ib", "編集");
+      eb.type = "button";
+      eb.addEventListener("click", function () { editingId = it.id; render(); });
+      var db = el("button", "ib del", "削除");
+      db.type = "button";
+      db.addEventListener("click", function () {
+        if (!confirm("「" + it.t + "」を削除する？")) return;
+        var f = find(it.id);
+        if (f) f.cat.items.splice(f.idx, 1);
+        save(); render();
+      });
+      li.appendChild(eb); li.appendChild(db);
+    }
+    return li;
+  }
+
+  function toggle(id) {
+    var f = find(id);
+    if (!f) return;
+    f.item.done = !f.item.done;
+    save(); render();
+  }
+
+  $("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var inp = $("newText");
+    var v = inp.value.trim();
+    if (!v) { inp.focus(); return; }
+    var catId = $("newCat").value;
+    var cat = state.filter(function (c) { return c.id === catId; })[0] || state[0];
+    cat.items.push({ id: newId(), t: v, done: false });
+    inp.value = "";
+    save(); render();
+  });
+
+  $("uncheck").addEventListener("click", function () {
+    if (!confirm("チェックを全部外す？")) return;
+    state.forEach(function (c) { c.items.forEach(function (i) { i.done = false; }); });
+    save(); render();
+  });
+  $("reset").addEventListener("click", function () {
+    if (!confirm("追加・編集した内容も消えて初期リストに戻る。続ける？")) return;
+    state = fresh(); save(); render();
+  });
+
+  if (!canSave) $("warn").style.display = "block";
+  render();
+})();
+</script>
+</body>
+</html>
